@@ -44,13 +44,37 @@ sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '1234'; FLUSH PRIVILE
 
 ¿Prefieres Docker? `docker compose up -d` levanta MySQL 8.4 con la base ya creada (puerto 3306, root / 1234).
 
+**1b. Requisitos en Windows**
+
+1. Instala [JDK 21](https://adoptium.net) y [Maven](https://maven.apache.org/download.cgi) (o usa el que trae IntelliJ IDEA) y [MySQL Server 8](https://dev.mysql.com/downloads/installer/) con clave `root` = `1234`.
+2. Agrega la carpeta `bin` de MySQL al `PATH` (por ejemplo `C:\Program Files\MySQL\MySQL Server 8.4\bin`) para que exista el comando `mysql`.
+   Si prefieres no tocar el `PATH`, usa el parámetro `-MysqlExe` (ver abajo).
+3. ¿Docker Desktop? `docker compose up -d` también funciona igual que en Ubuntu.
+
 **2. Crear la base de datos** (se puede repetir las veces que haga falta: recrea todo desde cero)
 
 ```bash
 scripts/crear-bd.sh
 ```
 
+En Windows (PowerShell o `cmd`):
+
+```powershell
+scripts\crear-bd.cmd                                  # doble clic también sirve
+.\scripts\crear-bd.ps1 -Clave otra -MysqlExe "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
+```
+
 **3. Ejecutar un paso**
+
+```bash
+scripts/ejecutar-paso.sh 5              # Ubuntu · pasos 2 a 7
+```
+
+```powershell
+scripts\ejecutar-paso.cmd 5             # Windows · pasos 2 a 7
+```
+
+O a mano:
 
 ```bash
 cd paso-05-parametrizadas
@@ -75,7 +99,7 @@ Más detalles y el flujo de trabajo nube ↔ móvil ↔ Ubuntu en [`docs/COMO_TR
 ```
 poo_vivero_bd/
 ├── sql/                      Esquema y datos de la base "vivero" (compartidos por todos los pasos)
-├── scripts/crear-bd.sh       Crea/recrea la base de datos
+├── scripts/                  crear-bd y ejecutar-paso, en versión .sh (Ubuntu) y .ps1/.cmd (Windows)
 ├── docker-compose.yml        MySQL 8.4 listo para usar (opcional)
 ├── docs/                     Mapa del material, flujo de trabajo, capturas
 ├── paso-01-sql/              Consultas de nivelación (solo SQL)

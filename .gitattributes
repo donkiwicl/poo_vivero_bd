@@ -1,0 +1,6 @@
+# Finales de línea: los scripts de Unix siempre LF y los de Windows siempre CRLF,
+# para que funcionen sin importar cómo se clone el repositorio.
+*.sh   text eol=lf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+*.sql  text eol=lf
