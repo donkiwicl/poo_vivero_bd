@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pasos:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: "1234"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -p1234"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Crear la base de datos
+        run: scripts/crear-bd.sh
+
+      - name: Pasos 2 a 6 (consola)
+        run: |
+          for paso in paso-02-conexion paso-03-configuracion paso-04-crud-statement paso-05-parametrizadas paso-06-dao; do
+            echo "::group::$paso"
+            (cd "$paso" && mvn -B -q compile exec:java)
+            echo "::endgroup::"
+          done
+
+      - name: Paso 7 (compila con JavaFX 21.0.6)
+        run: cd paso-07-javafx && mvn -B -q compile
+
+      - name: La base queda como estaba
+        run: |
+          n=$(mysql -h 127.0.0.1 -uroot -p1234 -N -e "SELECT COUNT(*) FROM vivero.planta")
+          test "$n" = "8"
