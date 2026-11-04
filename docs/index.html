@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vivero Hojas del Sur · De archivos a base de datos</title>
+<style>
+:root{--bg:#0f1b14;--panel:#16281d;--panel2:#1d3526;--ink:#eaf3ec;--mute:#9db8a5;--acc:#7fd48a;--acc2:#f2c14e;--bad:#ff7b72;--line:#2b4a36}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#08110c;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center;background:var(--bg);overflow:hidden}
+.slide{position:absolute;inset:0;padding:56px 72px;display:none;flex-direction:column}
+.slide.on{display:flex}
+h1{font-size:64px;line-height:1.1}h2{font-size:42px;margin-bottom:6px}
+.kick{color:var(--acc);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:18px;margin-bottom:10px}
+.sub{color:var(--mute);font-size:24px;margin-bottom:22px}
+p,li{font-size:25px;line-height:1.4}
+ul{padding-left:28px}li{margin:8px 0}
+.cols{display:flex;gap:36px;flex:1;min-height:0}.cols>*{flex:1;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 26px}
+pre{background:#0a120d;border:1px solid var(--line);border-radius:12px;padding:18px 22px;font:21px/1.45 ui-monospace,"JetBrains Mono",Consolas,monospace;color:#d8ecdc;overflow:hidden;white-space:pre}
+.k{color:var(--acc2)}.g{color:var(--acc)}.r{color:var(--bad)}.m{color:var(--mute)}
+code{font:22px ui-monospace,Consolas,monospace;color:var(--acc2)}
+table{border-collapse:collapse;width:100%;font-size:23px}th,td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--acc)}
+.pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:4px 16px;font-size:20px;color:var(--mute);margin-right:8px}
+.steps{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:20px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 12px;text-align:center}
+.step b{display:block;font-size:44px;color:var(--acc)}.step span{font-size:20px;line-height:1.25;display:block}
+.big{font-size:90px;color:var(--acc);font-weight:800}
+.layer{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 18px;font-size:23px;text-align:center}
+.arrow{text-align:center;color:var(--mute);font-size:22px;line-height:1.1}
+.pager{position:absolute;right:28px;bottom:16px;color:var(--mute);font-size:18px}
+.bar{position:absolute;left:0;bottom:0;height:5px;background:var(--acc);transition:width .2s}
+.cover{justify-content:center}.cover h1 span{color:var(--acc)}
+img.shot{width:100%;border-radius:12px;border:1px solid var(--line)}
+.nav{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:9}
+.nav button{background:#16281dcc;color:var(--ink);border:1px solid var(--line);border-radius:99px;padding:8px 18px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="stage">
+
+<section class="slide cover on">
+  <div class="kick">DSY1102 · Desarrollo Orientado a Objetos · EA3</div>
+  <h1>Vivero <span>Hojas del Sur</span><br>de archivos a base de datos</h1>
+  <p class="sub" style="margin-top:26px">Un caso en 7 pasos: SQL → JDBC → DAO → JavaFX</p>
+  <p><span class="pill">Java 21</span><span class="pill">MySQL 8</span><span class="pill">JDBC</span><span class="pill">JavaFX 21</span></p>
+  <p class="m" style="font-size:20px;margin-top:auto">github.com/donkiwicl/poo_vivero_bd</p>
+</section>
+
+<section class="slide">
+  <div class="kick">El punto de partida</div><h2>En la EP2 los datos vivían en archivos</h2>
+  <p class="sub">¿Qué pasa cuando el vivero crece?</p>
+  <div class="cols">
+    <div class="card"><h3 class="g" style="font-size:28px;margin-bottom:10px">EP2 · JSON</h3>
+      <ul><li><code>interiores.json</code> y <code>exteriores.json</code></li><li>Se reescribe el archivo completo en cada cambio</li><li>Buscar = recorrer listas en memoria</li><li>Sin reglas de integridad entre datos</li></ul></div>
+    <div class="card"><h3 class="g" style="font-size:28px;margin-bottom:10px">EA3 · Base de datos</h3>
+      <ul><li>Tablas <code>planta</code> y <code>proveedor</code></li><li>Se cambia solo la fila afectada</li><li><code>SELECT … WHERE</code> para buscar</li><li>Claves foráneas y <code>CHECK</code> protegen los datos</li></ul></div>
+  </div>
+  <p class="m" style="margin-top:18px;font-size:22px">El modelo (<code>Planta</code>, <code>PlantaInterior</code>, <code>PlantaExterior</code>) casi no cambia: solo gana un <code>id</code>.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">La ruta</div><h2>Siete pasos, una idea nueva en cada uno</h2>
+  <div class="steps">
+    <div class="step"><b>1</b><span>Nivelación SQL</span></div>
+    <div class="step"><b>2</b><span>Conexión JDBC</span></div>
+    <div class="step"><b>3</b><span>Configuración</span></div>
+    <div class="step"><b>4</b><span>CRUD con Statement</span></div>
+    <div class="step"><b>5</b><span>Prepared&shy;Statement</span></div>
+    <div class="step"><b>6</b><span>Capa DAO</span></div>
+    <div class="step"><b>7</b><span>Interfaz JavaFX</span></div>
+  </div>
+  <p style="margin-top:34px">Cada carpeta <code>paso-NN-…</code> es un proyecto Maven <b>completo y ejecutable</b>, con su README.</p>
+  <p class="m" style="margin-top:10px">Cada paso parte del código del anterior y deja una pregunta que el siguiente responde.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 1 · Nivelación SQL</div><h2>Tabla = clase · fila = objeto · columna = atributo</h2>
+  <div class="cols" style="margin-top:14px">
+<pre><span class="k">CREATE TABLE</span> planta (
+  id        <span class="g">INT PRIMARY KEY AUTO_INCREMENT</span>,
+  tipo      VARCHAR(10) <span class="k">NOT NULL</span>,
+  nombre    VARCHAR(100) <span class="k">NOT NULL</span>,
+  altura_cm INT <span class="k">NOT NULL</span>,
+  cantidad  INT <span class="k">NOT NULL</span>,
+  proveedor_id INT,
+  <span class="k">CHECK</span> (altura_cm <span class="k">BETWEEN</span> 1 <span class="k">AND</span> 300),
+  <span class="k">FOREIGN KEY</span> (proveedor_id)
+    <span class="k">REFERENCES</span> proveedor (id)
+);</pre>
+    <div><ul>
+      <li><code>PRIMARY KEY</code>: identifica cada fila</li>
+      <li><code>FOREIGN KEY</code>: une tablas</li>
+      <li><code>CHECK</code>: las reglas del modelo, también en la base</li>
+      <li><code>JOIN</code>, <code>GROUP BY</code>, <code>HAVING</code> para consultar</li>
+    </ul><p class="m" style="margin-top:14px;font-size:21px">⚠ <code>UPDATE</code> y <code>DELETE</code> siempre con <code>WHERE</code>.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 2 · Conectividad</div><h2>Java habla con MySQL a través de JDBC</h2>
+  <p class="sub">DriverManager → Driver (Connector/J) → servidor</p>
+  <div class="cols">
+<pre><span class="m">// jdbc : motor :// host : puerto / base</span>
+<span class="k">String</span> URL = <span class="g">"jdbc:mysql://localhost:3306/vivero"</span>;
+
+<span class="k">try</span> (<span class="k">Connection</span> con =
+       DriverManager.getConnection(URL, USER, PASS)) {
+    <span class="m">// usar la conexión</span>
+} <span class="k">catch</span> (<span class="k">SQLException</span> e) {
+    System.err.println(e.getMessage());
+}</pre>
+    <div class="card"><h3 class="g" style="font-size:26px;margin-bottom:8px">try-with-resources</h3>
+      <p>Cierra <code>Connection</code>, <code>Statement</code> y <code>ResultSet</code> <b>solo</b>, incluso si hay una excepción.</p>
+      <p class="m" style="margin-top:12px;font-size:22px">Olvidarlo = fuga de conexiones.</p></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 3 · Configuración</div><h2>Un solo lugar sabe cómo conectarse</h2>
+  <div class="cols" style="margin-top:14px">
+<pre><span class="m"># db.properties</span>
+db.url=jdbc:mysql://localhost:3306/vivero
+db.usuario=root
+db.clave=<span class="r">1234</span>
+
+<span class="m">// DatabaseConnection</span>
+<span class="k">public static</span> Connection getConnection()
+        <span class="k">throws</span> SQLException {
+    <span class="k">return</span> DriverManager.getConnection(
+        url, usuario, clave);
+}</pre>
+    <div><ul>
+      <li>La configuración sale del código</li>
+      <li>Variables de entorno tienen prioridad: <code>VIVERO_DB_CLAVE</code></li>
+      <li>Si cambia el puerto o la clave, se toca <b>un</b> archivo</li>
+    </ul>
+    <table style="margin-top:12px;font-size:20px"><tr><th>Código</th><th>Significa</th></tr><tr><td>1045</td><td>usuario/clave</td></tr><tr><td>1049</td><td>base no existe</td></tr><tr><td>0</td><td>servidor apagado</td></tr></table></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 4 · Consultas y manipulación</div><h2>Dos métodos, dos tipos de sentencia</h2>
+  <table style="margin:14px 0 20px"><tr><th>Sentencia</th><th>Método</th><th>Devuelve</th></tr>
+    <tr><td><code>SELECT</code></td><td><code>executeQuery()</code></td><td><code>ResultSet</code> (filas)</td></tr>
+    <tr><td><code>INSERT · UPDATE · DELETE</code></td><td><code>executeUpdate()</code></td><td><code>int</code> (filas afectadas)</td></tr></table>
+<pre><span class="k">while</span> (rs.next()) {                    <span class="m">// una fila por vuelta</span>
+    plantas.add(PlantaMapper.mapear(rs));   <span class="m">// fila → objeto del modelo</span>
+}</pre>
+  <p class="m" style="margin-top:14px;font-size:22px">El campo <code>tipo</code> decide si se crea una <code>PlantaInterior</code> o una <code>PlantaExterior</code>: el polimorfismo se reconstruye desde la base.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 5 · Sentencias parametrizadas</div><h2>El dato del usuario es un dato, nunca código</h2>
+  <div class="cols" style="margin-top:14px">
+    <div><h3 class="r" style="font-size:26px;margin-bottom:8px">Statement ✗</h3>
+<pre>"… WHERE nombre = '" + nombre + "'"
+
+nombre = <span class="r">' OR '1'='1</span>
+<span class="m">→ WHERE nombre = '' OR '1'='1'</span>
+<span class="r">→ 8 filas: ¡todo el inventario!</span></pre></div>
+    <div><h3 class="g" style="font-size:26px;margin-bottom:8px">PreparedStatement ✓</h3>
+<pre>ps = con.prepareStatement(
+  "… WHERE nombre = <span class="g">?</span>");
+ps.setString(<span class="g">1</span>, nombre);
+
+<span class="m">→ busca el texto literal</span>
+<span class="g">→ 0 filas</span></pre></div>
+  </div>
+  <p style="margin-top:16px;font-size:23px">Además: <code>RETURN_GENERATED_KEYS</code> para recuperar el <code>id</code>, <code>addBatch()</code> y transacciones.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 5 · Reutilización</div><h2>Una sentencia, varias ejecuciones, todo o nada</h2>
+<pre style="margin-top:14px">con.setAutoCommit(<span class="k">false</span>);                 <span class="m">// inicia la transacción</span>
+<span class="k">try</span> (PreparedStatement ps = con.prepareStatement(SQL_INSERT)) {
+    <span class="k">for</span> (PlantaInterior p : plantas) {
+        ps.setString(1, p.getNombre());
+        ps.setInt(2, p.getAlturaCm());
+        ps.setInt(3, p.getCantidad());
+        ps.setDouble(4, p.getVolumenMacetaLitros());
+        ps.addBatch();
+    }
+    ps.executeBatch();
+    con.commit();                              <span class="g">// confirma todo junto</span>
+} <span class="k">catch</span> (SQLException e) {
+    con.rollback();                            <span class="r">// algo falló: se deshace todo</span>
+    <span class="k">throw</span> e;
+}</pre>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 6 · Refactorización</div><h2>Separar el qué del cómo</h2>
+  <div class="cols">
+    <div style="display:flex;flex-direction:column;gap:6px;justify-content:center">
+      <div class="layer">Controlador JavaFX</div><div class="arrow">▼</div>
+      <div class="layer">PlantaRepository</div><div class="arrow">▼</div>
+      <div class="layer" style="border-color:var(--acc);color:var(--acc)">«interface» PlantaDao</div>
+      <div class="arrow">▲ implementan ▲</div>
+      <div style="display:flex;gap:10px"><div class="layer" style="flex:1">PlantaDaoMySql</div><div class="layer" style="flex:1">PlantaDaoMemoria</div></div><div class="arrow">▼</div>
+      <div class="layer">DatabaseConnection → MySQL</div>
+    </div>
+    <div><ul>
+      <li>Todo el SQL vive en <b>un</b> lugar</li>
+      <li>El controlador no importa <code>java.sql</code></li>
+      <li><code>PersistenciaException</code> en vez de <code>printStackTrace()</code>: el error sube hasta la interfaz</li>
+      <li>El DAO se entrega por el constructor</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 6 · El contrato</div><h2>Cambiar el DAO no cambia nada más</h2>
+  <div class="cols" style="margin-top:14px">
+<pre><span class="k">public interface</span> PlantaDao {
+  List&lt;Planta&gt; listarTodas();
+  Optional&lt;Planta&gt; buscarPorId(<span class="k">int</span> id);
+  List&lt;Planta&gt; buscarPorNombre(String n);
+  <span class="k">void</span> insertar(Planta p);
+  <span class="k">boolean</span> actualizar(Planta p);
+  <span class="k">boolean</span> eliminar(<span class="k">int</span> id);
+}</pre>
+<pre><span class="m">// producción</span>
+<span class="k">new</span> PlantaRepository(
+    <span class="k">new</span> <span class="g">PlantaDaoMySql</span>());
+
+<span class="m">// pruebas, sin base de datos</span>
+<span class="k">new</span> PlantaRepository(
+    <span class="k">new</span> <span class="g">PlantaDaoMemoria</span>());</pre>
+  </div>
+  <p class="m" style="margin-top:14px;font-size:22px">¿Qué habría que escribir para volver a guardar en JSON? Solo otra implementación.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">Paso 7 · Integración</div><h2>La tabla observa la lista</h2>
+  <div class="cols" style="margin-top:12px">
+    <div><img class="shot" src="img/paso-07-ventana.png" alt="Ventana de la aplicación del vivero"></div>
+    <div>
+<pre style="font-size:19px">tabla.setItems(datos);
+
+datos.setAll(
+  repositorio.listar());</pre>
+      <ul style="margin-top:14px"><li style="font-size:22px">Tras cada operación se relee la base</li><li style="font-size:22px"><code>IllegalArgumentException</code> → dato inválido</li><li style="font-size:22px"><code>PersistenciaException</code> → falló la base</li></ul></div>
+  </div>
+</section>
+
+<section class="slide">
+  <div class="kick">Para la evaluación</div><h2>Errores que cuestan la nota</h2>
+  <table style="margin-top:14px"><tr><th>Síntoma</th><th>Revisa primero</th></tr>
+    <tr><td>No conecta</td><td>MySQL encendido · URL · usuario · clave · dependencia en <code>pom.xml</code></td></tr>
+    <tr><td>Tabla JavaFX vacía</td><td><code>cargarDatos()</code> · consulta · nombres de columnas</td></tr>
+    <tr><td><code>Parameter index out of range</code></td><td>Cantidad de <code>?</code> = cantidad de <code>setXxx</code></td></tr>
+    <tr><td>Actualizar no cambia nada</td><td>El <code>id</code> viene de la fila seleccionada</td></tr>
+    <tr><td>Conexiones abiertas</td><td><code>try-with-resources</code> en todo acceso</td></tr></table>
+  <p style="margin-top:16px;font-size:23px" class="r">Sin conexión, o con errores SQL sin controlar, el CRUD de la EP3 obtiene la nota mínima.</p>
+</section>
+
+<section class="slide">
+  <div class="kick">Cierre</div><h2>Mismo vivero, otro destino</h2>
+  <table style="margin-top:12px"><tr><th></th><th>EP2 · archivos</th><th>EA3 · base de datos</th></tr>
+    <tr><td>Datos en</td><td>JSON</td><td>Tablas MySQL</td></tr>
+    <tr><td>Conoce el formato</td><td><code>GsonPlantaDao</code></td><td><code>PlantaDaoMySql</code></td></tr>
+    <tr><td>Buscar</td><td>Recorrer listas</td><td><code>SELECT … WHERE</code></td></tr>
+    <tr><td>Integridad</td><td>Modelo</td><td>Modelo <b>y</b> base</td></tr>
+    <tr><td>Ve el controlador</td><td colspan="2"><code>PlantaRepository</code> — igual en ambos</td></tr></table>
+  <p style="margin-top:auto;font-size:24px"><span class="g">github.com/donkiwicl/poo_vivero_bd</span><br><span class="m" style="font-size:20px">Cada paso: <code>README.md</code> con explicación, salida esperada y preguntas para pensar.</span></p>
+</section>
+
+<div class="bar" id="bar"></div><div class="pager" id="pager"></div>
+</div>
+<div class="nav"><button id="prev">◀</button><button id="next">▶</button></div>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide')),stage=document.getElementById('stage'),i=0;
+  function fit(){var s=Math.min(innerWidth/1280,innerHeight/720);stage.style.transform='translate(-50%,-50%) scale('+s+')'}
+  function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach(function(s,k){s.classList.toggle('on',k===i)});
+    document.getElementById('pager').textContent=(i+1)+' / '+slides.length;
+    document.getElementById('bar').style.width=((i+1)/slides.length*100)+'%';
+    try{history.replaceState(null,'','#'+(i+1))}catch(e){}}
+  addEventListener('resize',fit);fit();
+  addEventListener('keydown',function(e){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>-1)show(i+1);
+    else if(['ArrowLeft','PageUp','Backspace'].indexOf(e.key)>-1)show(i-1);
+    else if(e.key==='Home')show(0);else if(e.key==='End')show(slides.length-1);
+    else if(e.key==='f')document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()});
+  document.getElementById('next').onclick=function(){show(i+1)};document.getElementById('prev').onclick=function(){show(i-1)};
+  var x0=null;addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){if(x0===null)return;var d=e.changedTouches[0].clientX-x0;if(Math.abs(d)>40)show(d<0?i+1:i-1);x0=null});
+  show((parseInt(location.hash.slice(1),10)||1)-1);
+})();
+</script>
+</body>
+</html>
